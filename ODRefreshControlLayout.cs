@@ -2,7 +2,6 @@ using System;
 
 public enum ODRefreshControlLayout
 {
-	Vertical,
-	Horizontal
+    Vertical,
+    Horizontal
 }
-
