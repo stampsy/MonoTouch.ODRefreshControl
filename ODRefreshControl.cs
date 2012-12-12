@@ -83,17 +83,17 @@ public class ODRefreshControl : UIControl
 				((UIActivityIndicatorView) _activity).Color = value;
 		}
 	}
-
-	public ODRefreshControl (UIScrollView scrollView, bool vertical = true, UIView activity = null)
+	
+	public ODRefreshControl (UIScrollView scrollView, ODRefreshControlLayout layout = ODRefreshControlLayout.Vertical, UIView activity = null)
 		: base (
-			(vertical)
-			? new RectangleF (0, (-TotalViewHeight + scrollView.ContentInset.Top), scrollView.Frame.Width, TotalViewHeight)
-			: new RectangleF ((-TotalViewHeight + scrollView.ContentInset.Left), 0, TotalViewHeight, scrollView.Frame.Height)
+			(layout == ODRefreshControlLayout.Vertical)
+			? new RectangleF (0, (-TotalViewHeight + scrollView.ContentInset.Top), scrollView.Bounds.Width, TotalViewHeight)
+			: new RectangleF ((-TotalViewHeight + scrollView.ContentInset.Left), 0, TotalViewHeight, scrollView.Bounds.Height)
 			)
 	{
 		ScrollView = scrollView;
-		OriginalContentInset = scrollView.ContentInset;
-		_vertical = vertical;
+		OriginalContentInset = NormalizedScrollViewInset;
+		_vertical = (layout == ODRefreshControlLayout.Vertical);
 		
 		AutoresizingMask = (_vertical)
 			? UIViewAutoresizing.FlexibleWidth
@@ -104,7 +104,7 @@ public class ODRefreshControl : UIControl
 		ScrollView.AddObserver (this, new NSString ("contentInset"), NSKeyValueObservingOptions.New, IntPtr.Zero);
 		
 		_activity = activity ?? new UIActivityIndicatorView (UIActivityIndicatorViewStyle.Gray);
-		_activity.Center = new PointF ((float) Math.Floor (Frame.Width / 2.0f), (float) Math.Floor (Frame.Height / 2.0f));
+		_activity.Center = new PointF ((float) Math.Floor (Bounds.Width / 2.0f), (float) Math.Floor (Bounds.Height / 2.0f));
 		
 		_activity.AutoresizingMask = (_vertical)
 			? UIViewAutoresizing.FlexibleLeftMargin | UIViewAutoresizing.FlexibleRightMargin
@@ -159,8 +159,8 @@ public class ODRefreshControl : UIControl
 			if (!_ignoreInset) {
 				OriginalContentInset = ((NSValue) change ["new"]).UIEdgeInsetsValue;
 				Frame = (_vertical)
-					? new RectangleF (0, - (TotalViewHeight + ScrollView.ContentInset.Top), ScrollView.Frame.Size.Width, TotalViewHeight)
-						: new RectangleF (- (TotalViewHeight + ScrollView.ContentInset.Left), 0, TotalViewHeight, ScrollView.Frame.Size.Height);
+					? new RectangleF (0, - (TotalViewHeight + ScrollView.ContentInset.Top), ScrollView.Bounds.Size.Width, TotalViewHeight)
+						: new RectangleF (- (TotalViewHeight + ScrollView.ContentInset.Left), 0, TotalViewHeight, ScrollView.Bounds.Size.Height);
 			}
 			
 			return;
@@ -193,19 +193,19 @@ public class ODRefreshControl : UIControl
 				
 				if (_vertical) {
 					_activity.Center = new PointF (
-						(float) Math.Floor (Frame.Size.Width / 2.0f),
+						(float) Math.Floor (Bounds.Width / 2.0f),
 						Math.Min (
-						offset + Frame.Height + (float) Math.Floor (OpenedViewHeight / 2.0f),
-						Frame.Height - OpenedViewHeight / 2.0f
+						offset + Bounds.Height + (float) Math.Floor (OpenedViewHeight / 2.0f),
+						Bounds.Height - OpenedViewHeight / 2.0f
 						)
 						);
 				} else {
 					_activity.Center = new PointF (
 						Math.Min (
-						offset + Frame.Width + (float) Math.Floor (OpenedViewHeight / 2.0f),
-						Frame.Width - OpenedViewHeight / 2.0f
+						offset + Bounds.Width + (float) Math.Floor (OpenedViewHeight / 2.0f),
+						Bounds.Width - OpenedViewHeight / 2.0f
 						),
-						(float) Math.Floor (Frame.Size.Height / 2.0f)
+						(float) Math.Floor (Bounds.Height / 2.0f)
 						);
 				}
 				
@@ -232,16 +232,16 @@ public class ODRefreshControl : UIControl
 							}
 							
 							if (_hasSectionHeaders) {
-								ScrollView.ContentInset = ConvertVerticalInsets (_vertical, new UIEdgeInsets (Math.Min (-offset, OpenedViewHeight) + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right));
+								NormalizedScrollViewInset = new UIEdgeInsets (Math.Min (-offset, OpenedViewHeight) + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
 							} else {
-								ScrollView.ContentInset = ConvertVerticalInsets (_vertical, new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right));
+								NormalizedScrollViewInset = new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
 							}
 						} else if (_didSetInset && _hasSectionHeaders) {
-							ScrollView.ContentInset = ConvertVerticalInsets (_vertical, new UIEdgeInsets (-offset + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right));
+							NormalizedScrollViewInset = new UIEdgeInsets (-offset + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
 						} 
 					}
 				} else if (_hasSectionHeaders) {
-					ScrollView.ContentInset = OriginalContentInset;
+					NormalizedScrollViewInset = OriginalContentInset;
 				}
 				
 				_ignoreInset = false;
@@ -303,13 +303,13 @@ public class ODRefreshControl : UIControl
 			float currentBottomRadius = lerp (MinBottomRadius, MaxBottomRadius, percentage);
 			float currentBottomPadding = lerp (MinBottomPadding, MaxBottomPadding, percentage);            
 			
-			var bottomOrigin = new PointF ((float) Math.Floor (Frame.Size.Width / 2.0f), Bounds.Height - currentBottomPadding - currentBottomRadius);
+			var bottomOrigin = new PointF ((float) Math.Floor (Bounds.Width / 2.0f), Bounds.Height - currentBottomPadding - currentBottomRadius);
 			var topOrigin = PointF.Empty;
 			
 			if (distance == 0) {
-				topOrigin = new PointF ((float) Math.Floor (Bounds.Size.Width / 2.0f), bottomOrigin.Y);
+				topOrigin = new PointF ((float) Math.Floor (Bounds.Width / 2.0f), bottomOrigin.Y);
 			} else {
-				topOrigin = new PointF ((float) Math.Floor (Bounds.Size.Width / 2.0f), Bounds.Size.Height + offset + currentTopPadding + currentTopRadius);
+				topOrigin = new PointF ((float) Math.Floor (Bounds.Width / 2.0f), Bounds.Height + offset + currentTopPadding + currentTopRadius);
 				
 				if (percentage == 0) {
 					bottomOrigin.Y -= ((Math.Abs (verticalShift) - MaxDistance));
@@ -345,7 +345,7 @@ public class ODRefreshControl : UIControl
 			float currentRightRadius = lerp (MinBottomRadius, MaxBottomRadius, percentage);
 			float currentRightPadding = lerp (MinBottomPadding, MaxBottomPadding, percentage);
 			
-			var rightOrigin = new PointF (Bounds.Width - currentRightPadding - currentRightRadius, (float) Math.Floor (Frame.Height / 2.0f));
+			var rightOrigin = new PointF (Bounds.Width - currentRightPadding - currentRightRadius, (float) Math.Floor (Bounds.Height / 2.0f));
 			var leftOrigin = PointF.Empty;
 			
 			if (distance == 0) {
@@ -436,10 +436,19 @@ public class ODRefreshControl : UIControl
 			pathMorph.RemovedOnCompletion = false;
 			
 			var toPath = new CGPath ();
-			toPath.AddArc (headOrigin.X, headOrigin.Y, radius, 0, (float)Math.PI, true);
-			toPath.AddCurveToPoint (headOrigin.X - radius, headOrigin.Y, headOrigin.X - radius, headOrigin.Y, headOrigin.X - radius, headOrigin.Y);
-			toPath.AddArc (headOrigin.X, headOrigin.Y, radius, (float) Math.PI, 0, true);
-			toPath.AddCurveToPoint (headOrigin.X + radius, headOrigin.Y, headOrigin.X + radius, headOrigin.Y, headOrigin.X + radius, headOrigin.Y);
+			
+			if (_vertical) {
+				toPath.AddArc (headOrigin.X, headOrigin.Y, radius, 0, (float)Math.PI, true);
+				toPath.AddCurveToPoint (headOrigin.X - radius, headOrigin.Y, headOrigin.X - radius, headOrigin.Y, headOrigin.X - radius, headOrigin.Y);
+				toPath.AddArc (headOrigin.X, headOrigin.Y, radius, (float) Math.PI, 0, true);
+				toPath.AddCurveToPoint (headOrigin.X + radius, headOrigin.Y, headOrigin.X + radius, headOrigin.Y, headOrigin.X + radius, headOrigin.Y);
+			} else {
+				toPath.AddArc (headOrigin.X, headOrigin.Y, radius, - (float) Math.PI / 2.0f, (float) Math.PI / 2.0f, true);
+				toPath.AddCurveToPoint (headOrigin.X, headOrigin.Y + radius, headOrigin.X, headOrigin.Y + radius, headOrigin.X, headOrigin.Y + radius);
+				toPath.AddArc (headOrigin.X, headOrigin.Y, radius, (float) Math.PI / 2.0f, - (float) Math.PI / 2.0f, true);
+				toPath.AddCurveToPoint (headOrigin.X, headOrigin.Y - radius, headOrigin.X, headOrigin.Y - radius, headOrigin.X, headOrigin.Y - radius);
+			}
+			
 			toPath.CloseSubpath ();
 			
 			pathMorph.To = new NSValue (toPath.Handle);
@@ -456,7 +465,7 @@ public class ODRefreshControl : UIControl
 			
 			var shapeAlphaAnimation = CABasicAnimation.FromKeyPath ("opacity");
 			shapeAlphaAnimation.Duration = .1f;
-			shapeAlphaAnimation.BeginTime = CABasicAnimation.CurrentMediaTime ();
+			shapeAlphaAnimation.BeginTime = CABasicAnimation.CurrentMediaTime () + .1;
 			shapeAlphaAnimation.To = new NSNumber (0);
 			shapeAlphaAnimation.FillMode = CAFillMode.Forwards;
 			shapeAlphaAnimation.RemovedOnCompletion = false;
@@ -509,7 +518,7 @@ public class ODRefreshControl : UIControl
 			var offset = ScrollView.ContentOffset;
 			_ignoreInset = true;
 			
-			ScrollView.ContentInset = new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
+			NormalizedScrollViewInset = new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
 			_ignoreInset = false;
 			ScrollView.SetContentOffset (offset, false);
 			
@@ -525,11 +534,12 @@ public class ODRefreshControl : UIControl
 			
 			UIView.Animate (.4, () => {
 				_ignoreInset = true;
-				ScrollView.ContentInset = OriginalContentInset;
+				NormalizedScrollViewInset = OriginalContentInset;
 				_ignoreInset = false;
 				_activity.Alpha = 0;
 				_activity.Layer.Transform = CATransform3D.MakeScale (.1f, .1f, 1);
 			}, () => {
+				
 				_shapeLayer.RemoveAllAnimations ();
 				_shapeLayer.Path = null;
 				_shapeLayer.ShadowPath = new CGPath (IntPtr.Zero);
@@ -542,7 +552,7 @@ public class ODRefreshControl : UIControl
 				_highlightLayer.Path = null;
 				
 				_ignoreInset = true;
-				ScrollView.ContentInset = OriginalContentInset;
+				NormalizedScrollViewInset = OriginalContentInset;
 				_ignoreInset = false;
 			});
 		}
@@ -568,20 +578,35 @@ public class ODRefreshControl : UIControl
 		
 		base.Dispose (disposing);
 	}
-
-	static UIEdgeInsets ConvertVerticalInsets (bool vertical, UIEdgeInsets insets)
-	{
-		if (vertical)
-			return insets;
-		
-		return new UIEdgeInsets (
-			insets.Left,
-			insets.Top,
-			insets.Right,
-			insets.Bottom
-			);
+	
+	UIEdgeInsets NormalizedScrollViewInset {
+		get {
+			var inset = ScrollView.ContentInset;
+			
+			if (_vertical)
+				return inset;
+			
+			return new UIEdgeInsets (
+				inset.Left,
+				inset.Top,
+				inset.Right,
+				inset.Bottom
+				);
+		} set {
+			if (_vertical) {
+				ScrollView.ContentInset = value;
+				return;
+			}
+			
+			ScrollView.ContentInset = new UIEdgeInsets (
+				value.Left,
+				value.Top,
+				value.Right,
+				value.Bottom
+				);
+		}
 	}
-
+	
 	static float lerp (float a, float b, float p)
 	{
 		return a + (b - a) * p;

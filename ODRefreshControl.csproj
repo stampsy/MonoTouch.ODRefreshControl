@@ -38,5 +38,6 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Compile Include="ODRefreshControl.cs" />
+    <Compile Include="ODRefreshControlLayout.cs" />
   </ItemGroup>
 </Project>
