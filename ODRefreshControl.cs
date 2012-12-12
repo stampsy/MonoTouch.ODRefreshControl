@@ -328,8 +328,8 @@ public class ODRefreshControl : UIControl
             // Add the highlight shape
 
             var highlightPath = new CGPath ();
-            path.AddArc (topOrigin.X, topOrigin.Y, currentTopRadius, 0, (float) Math.PI, true);
-            path.AddArc (topOrigin.X, topOrigin.Y + 1.25f, currentTopRadius, (float) Math.PI, 0, false);
+			highlightPath.AddArc (topOrigin.X, topOrigin.Y, currentTopRadius, 0, (float) Math.PI, true);
+			highlightPath.AddArc (topOrigin.X, topOrigin.Y + 1.25f, currentTopRadius, (float) Math.PI, 0, false);
 
             _highlightLayer.Path = highlightPath;
             _highlightLayer.FillRule = CAShapeLayer.FillRuleNonZero;
