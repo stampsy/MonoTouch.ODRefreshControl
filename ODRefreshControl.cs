@@ -37,6 +37,8 @@ public class ODRefreshControl : UIControl
     bool _hasSectionHeaders;
     float _lastOffset;
     UIColor _tintColor;
+    UIColor _shadowColor;
+    UIColor _highlightColor;
     
     public UIScrollView ScrollView { get; private set; }
     public UIEdgeInsets OriginalContentInset { get; private set; }
@@ -52,12 +54,28 @@ public class ODRefreshControl : UIControl
             _shapeLayer.Hidden = !value;
         }
     }
-    
+
+    public UIColor ShadowColor {
+        get { return _shadowColor; }
+        set {
+            _shadowColor = value;
+            _shapeLayer.ShadowColor = value.CGColor;
+        }
+    }
+
     public UIColor TintColor {
         get { return _tintColor; }
         set {
             _tintColor = value;
             _shapeLayer.FillColor = value.CGColor;
+        }
+    }
+
+    public UIColor HighlightColor {
+        get { return _highlightColor; }
+        set {
+            _highlightColor = value;
+            _highlightLayer.FillColor = value.CGColor;
         }
     }
     
@@ -122,13 +140,16 @@ public class ODRefreshControl : UIControl
         _ignoreOffset = false;
         _didSetInset = false;
         _hasSectionHeaders = false;
+
         _tintColor = UIColor.FromRGB (155, 162, 172);
-        
+        _shadowColor = UIColor.Black;
+        _highlightColor = UIColor.White.ColorWithAlpha (.2f);
+
         _shapeLayer = new CAShapeLayer {
             FillColor = _tintColor.CGColor,
             StrokeColor = UIColor.DarkGray.ColorWithAlpha (.5f).CGColor,
             LineWidth = .5f,
-            ShadowColor = UIColor.Black.CGColor,
+            ShadowColor = _shadowColor.CGColor,
             ShadowOffset = new SizeF (0, 1),
             ShadowOpacity = .4f,
             ShadowRadius = .5f
@@ -143,12 +164,22 @@ public class ODRefreshControl : UIControl
         };
         
         _shapeLayer.AddSublayer (_arrowLayer);
-        
+
         _highlightLayer = new CAShapeLayer {
-            FillColor = UIColor.White.ColorWithAlpha (.2f).CGColor
+            FillColor = _highlightColor.CGColor
         };
-        
+
         _shapeLayer.AddSublayer (_highlightLayer);
+
+        if (!_vertical) {
+            // Highlight layer is currently not shown in horizontal mode
+            // because it has a wrong path.
+
+            // It should instead be drawn all the way from left to right circle.
+            // Feel free to work on it!
+
+            _highlightLayer.RemoveFromSuperLayer ();
+        }
     }
     
     public override void ObserveValue (NSString keyPath, NSObject ofObject, NSDictionary change, IntPtr context)
