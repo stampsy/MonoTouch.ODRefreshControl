@@ -600,7 +600,7 @@ public class ODRefreshControl : UIControl
     
     protected override void Dispose (bool disposing)
     {
-        if (disposing) {
+        if (ScrollView != null) {
             ScrollView.RemoveObserver (this, new NSString ("contentOffset"));
             ScrollView.RemoveObserver (this, new NSString ("contentInset"));
             ScrollView = null;
