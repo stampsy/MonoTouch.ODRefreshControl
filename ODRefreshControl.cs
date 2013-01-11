@@ -108,12 +108,12 @@ public class ODRefreshControl : UIControl
             )
     {
         ScrollView = scrollView;
-        OriginalContentInset = NormalizedScrollViewInset;
+        OriginalContentInset = scrollView.ContentInset;
         _vertical = (layout == ODRefreshControlLayout.Vertical);
-        
+
         AutoresizingMask = (_vertical)
             ? UIViewAutoresizing.FlexibleWidth
-                : UIViewAutoresizing.FlexibleHeight;
+            : UIViewAutoresizing.FlexibleHeight;
         
         ScrollView.AddSubview (this);
         ScrollView.AddObserver (this, new NSString ("contentOffset"), NSKeyValueObservingOptions.New, IntPtr.Zero);
@@ -124,7 +124,7 @@ public class ODRefreshControl : UIControl
         
         _activity.AutoresizingMask = (_vertical)
             ? UIViewAutoresizing.FlexibleLeftMargin | UIViewAutoresizing.FlexibleRightMargin
-                : UIViewAutoresizing.FlexibleTopMargin | UIViewAutoresizing.FlexibleBottomMargin;
+            : UIViewAutoresizing.FlexibleTopMargin | UIViewAutoresizing.FlexibleBottomMargin;
         
         _activity.Alpha = 1;
         
@@ -189,7 +189,7 @@ public class ODRefreshControl : UIControl
                 OriginalContentInset = ((NSValue) change ["new"]).UIEdgeInsetsValue;
                 Frame = (_vertical)
                     ? new RectangleF (0, - (TotalViewHeight + ScrollView.ContentInset.Top), ScrollView.Bounds.Size.Width, TotalViewHeight)
-                        : new RectangleF (- (TotalViewHeight + ScrollView.ContentInset.Left), 0, TotalViewHeight, ScrollView.Bounds.Size.Height);
+                    : new RectangleF (- (TotalViewHeight + ScrollView.ContentInset.Left), 0, TotalViewHeight, ScrollView.Bounds.Size.Height);
             }
             
             return;
@@ -261,17 +261,23 @@ public class ODRefreshControl : UIControl
                             }
                             
                             if (_hasSectionHeaders) {
-                                NormalizedScrollViewInset = new UIEdgeInsets (Math.Min (-offset, OpenedViewHeight) + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
+                                ScrollView.ContentInset = (_vertical)
+                                    ? new UIEdgeInsets (Math.Min (-offset, OpenedViewHeight) + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right)
+                                    : new UIEdgeInsets (OriginalContentInset.Top, Math.Min (-offset, OpenedViewHeight) + OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
                             } else {
-                                NormalizedScrollViewInset = new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
+                                ScrollView.ContentInset = (_vertical)
+                                    ? new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right)
+                                    : new UIEdgeInsets (OriginalContentInset.Top, OriginalContentInset.Left + OpenedViewHeight, OriginalContentInset.Bottom, OriginalContentInset.Right);
                             }
                         } else if (_didSetInset && _hasSectionHeaders) {
-                            NormalizedScrollViewInset = new UIEdgeInsets (-offset + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
+                            ScrollView.ContentInset = (_vertical)
+                                ? new UIEdgeInsets (-offset + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right)
+                                : new UIEdgeInsets (OriginalContentInset.Top, -offset + OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
                         }
                         
                     }
                 } else if (_hasSectionHeaders) {
-                    NormalizedScrollViewInset = OriginalContentInset;
+                    ScrollView.ContentInset = OriginalContentInset;
                 }
                 
                 _ignoreInset = false;
@@ -547,8 +553,11 @@ public class ODRefreshControl : UIControl
             
             var offset = ScrollView.ContentOffset;
             _ignoreInset = true;
-            
-            NormalizedScrollViewInset = new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right);
+
+            ScrollView.ContentInset = (_vertical)
+                ? new UIEdgeInsets (OpenedViewHeight + OriginalContentInset.Top, OriginalContentInset.Left, OriginalContentInset.Bottom, OriginalContentInset.Right)
+                : new UIEdgeInsets (OriginalContentInset.Top, OriginalContentInset.Left + OpenedViewHeight, OriginalContentInset.Bottom, OriginalContentInset.Right);
+
             _ignoreInset = false;
             ScrollView.SetContentOffset (offset, false);
             
@@ -564,7 +573,7 @@ public class ODRefreshControl : UIControl
             
             UIView.Animate (.4, () => {
                 _ignoreInset = true;
-                NormalizedScrollViewInset = OriginalContentInset;
+                ScrollView.ContentInset = OriginalContentInset;
                 _ignoreInset = false;
                 _activity.Alpha = 0;
                 _activity.Layer.Transform = CATransform3D.MakeScale (.1f, .1f, 1);
@@ -582,7 +591,7 @@ public class ODRefreshControl : UIControl
                 _highlightLayer.Path = null;
                 
                 _ignoreInset = true;
-                NormalizedScrollViewInset = OriginalContentInset;
+                ScrollView.ContentInset = OriginalContentInset;
                 _ignoreInset = false;
             });
         }
@@ -607,34 +616,6 @@ public class ODRefreshControl : UIControl
         }
         
         base.Dispose (disposing);
-    }
-    
-    UIEdgeInsets NormalizedScrollViewInset {
-        get {
-            var inset = ScrollView.ContentInset;
-            
-            if (_vertical)
-                return inset;
-            
-            return new UIEdgeInsets (
-                inset.Left,
-                inset.Top,
-                inset.Right,
-                inset.Bottom
-                );
-        } set {
-            if (_vertical) {
-                ScrollView.ContentInset = value;
-                return;
-            }
-            
-            ScrollView.ContentInset = new UIEdgeInsets (
-                value.Left,
-                value.Top,
-                value.Right,
-                value.Bottom
-                );
-        }
     }
     
     static float lerp (float a, float b, float p)
