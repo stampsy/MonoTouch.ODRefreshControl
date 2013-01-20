@@ -32,6 +32,7 @@ public class ODRefreshControl : UIControl
     bool _refreshing;
     bool _canRefresh;
     bool _ignoreInset;
+    bool _ignoreInsetBlock;
     bool _ignoreOffset;
     bool _didSetInset;
     bool _hasSectionHeaders;
@@ -103,12 +104,13 @@ public class ODRefreshControl : UIControl
     public ODRefreshControl (UIScrollView scrollView, ODRefreshControlLayout layout = ODRefreshControlLayout.Vertical, UIView activity = null)
         : base (
             (layout == ODRefreshControlLayout.Vertical)
-            ? new RectangleF (0, (-TotalViewHeight + scrollView.ContentInset.Top), scrollView.Bounds.Width, TotalViewHeight)
-            : new RectangleF ((-TotalViewHeight + scrollView.ContentInset.Left), 0, TotalViewHeight, scrollView.Bounds.Height)
+            ? new RectangleF (0, (-TotalViewHeight - scrollView.ContentInset.Top), scrollView.Bounds.Width, TotalViewHeight)
+            : new RectangleF ((-TotalViewHeight - scrollView.ContentInset.Left), 0, TotalViewHeight, scrollView.Bounds.Height)
             )
     {
         ScrollView = scrollView;
         OriginalContentInset = scrollView.ContentInset;
+
         _vertical = (layout == ODRefreshControlLayout.Vertical);
 
         AutoresizingMask = (_vertical)
@@ -181,12 +183,20 @@ public class ODRefreshControl : UIControl
             _highlightLayer.RemoveFromSuperLayer ();
         }
     }
+
+    public void IgnoreInsetChanges (NSAction action)
+    {
+        _ignoreInsetBlock = true;
+        action ();
+        _ignoreInsetBlock = false;
+    }
     
     public override void ObserveValue (NSString keyPath, NSObject ofObject, NSDictionary change, IntPtr context)
     {
         if (keyPath == "contentInset") {
-            if (!_ignoreInset) {
+            if (!_ignoreInset && !_ignoreInsetBlock) {
                 OriginalContentInset = ((NSValue) change ["new"]).UIEdgeInsetsValue;
+
                 Frame = (_vertical)
                     ? new RectangleF (0, - (TotalViewHeight + ScrollView.ContentInset.Top), ScrollView.Bounds.Size.Width, TotalViewHeight)
                     : new RectangleF (- (TotalViewHeight + ScrollView.ContentInset.Left), 0, TotalViewHeight, ScrollView.Bounds.Size.Height);
