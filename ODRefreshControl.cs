@@ -610,7 +610,8 @@ public class ODRefreshControl : UIControl
     public override void WillMoveToSuperview (UIView newSuperview)
     {
         base.WillMoveToSuperview (newSuperview);
-        if (newSuperview == null) {
+
+        if (newSuperview == null && ScrollView != null) {
             ScrollView.RemoveObserver (this, new NSString ("contentOffset"));
             ScrollView.RemoveObserver (this, new NSString ("contentInset"));
             ScrollView = null;
